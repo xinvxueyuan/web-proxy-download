@@ -1,0 +1,14 @@
+{
+    "name": "web-proxy-download",
+    "description": "A web proxy download system with admin panel",
+    "type": "project",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Admin\\": "admin/",
+            "Config\\": "config/"
+        }
+    }
+}

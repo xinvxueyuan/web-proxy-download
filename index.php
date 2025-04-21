@@ -1,20 +1,50 @@
 <?php
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Admin\WhitelistManager;
 
 class ProxyDownloader {
     private $targetUrl;
     private $downloadPath;
     
-    public function __construct($url) {
-        $this->parseUrl($url);
+    public function __construct() {
+        $this->parseUrl($_SERVER['REQUEST_URI']);
+        $this->validateUrl();
     }
-    
-    private function parseUrl($url) {
-        // 移除开头的域名部分，获取目标URL
-        $parts = explode('/', $_SERVER['REQUEST_URI'], 4);
-        if (count($parts) >= 4) {
-            $this->targetUrl = 'https://' . $parts[3];
+
+    private function parseUrl($requestUri) {
+        // Get the script's directory path relative to the document root
+        $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+        // Ensure scriptDir ends with a slash if it's not the root
+        if ($scriptDir !== '/' && $scriptDir !== '\') { // Handle both / and \ separators
+            $scriptDir .= '/';
+        }
+        // Normalize separators in requestUri for comparison
+        $normalizedRequestUri = str_replace('\\', '/', $requestUri);
+        $normalizedScriptDir = str_replace('\\', '/', $scriptDir);
+
+        // Check if the request URI starts with the script directory
+        if (strpos($normalizedRequestUri, $normalizedScriptDir) === 0) {
+            // Remove the script directory path from the request URI
+            $targetPath = substr($normalizedRequestUri, strlen($normalizedScriptDir));
+            // Remove query string if present
+            $targetPath = strtok($targetPath, '?');
+            // Basic validation: ensure target path is not empty
+            if (!empty($targetPath)) {
+                $this->targetUrl = 'https://' . $targetPath;
+            } else {
+                throw new Exception('无效的目标URL路径');
+            }
         } else {
-            throw new Exception('Invalid URL format');
+            // This case should ideally not happen if routing is correct,
+            // but handle it defensively.
+            throw new Exception('无法解析请求URI以确定目标URL');
+        }
+    }
+
+    private function validateUrl() {
+        if (!WhitelistManager::getInstance()->isUrlAllowed($this->targetUrl)) {
+            throw new Exception('该URL不在白名单中，禁止下载');
         }
     }
     
@@ -65,7 +95,7 @@ class ProxyDownloader {
 }
 
 try {
-    $downloader = new ProxyDownloader($_SERVER['REQUEST_URI']);
+    $downloader = new ProxyDownloader();
     $downloader->download();
 } catch (Exception $e) {
     header('HTTP/1.1 500 Internal Server Error');
