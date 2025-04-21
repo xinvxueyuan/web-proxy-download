@@ -16,7 +16,7 @@ class ProxyDownloader {
         // Get the script's directory path relative to the document root
         $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
         // Ensure scriptDir ends with a slash if it's not the root
-        if ($scriptDir !== '/' && $scriptDir !== '\') { // Handle both / and \ separators
+        if ($scriptDir !== '/' && $scriptDir !== '\\') { // Handle both / and \ separators
             $scriptDir .= '/';
         }
         // Normalize separators in requestUri for comparison
