@@ -6,7 +6,7 @@ use Admin\WhitelistManager;
 class ProxyDownloader {
     private $targetUrl;
     private $downloadPath;
-    
+
     public function __construct() {
         $this->parseUrl($_SERVER['REQUEST_URI']);
         $this->validateUrl();
@@ -20,8 +20,8 @@ class ProxyDownloader {
             $scriptDir .= '/';
         }
         // Normalize separators in requestUri for comparison
-        $normalizedRequestUri = str_replace('\\', '/', $requestUri);
-        $normalizedScriptDir = str_replace('\\', '/', $scriptDir);
+        $normalizedRequestUri = str_replace('\\', '/', $requestUri); // Line 23 - Using single quotes
+        $normalizedScriptDir = str_replace('\\', '/', $scriptDir);  // Line 24 - Using single quotes
 
         // Check if the request URI starts with the script directory
         if (strpos($normalizedRequestUri, $normalizedScriptDir) === 0) {
@@ -47,57 +47,114 @@ class ProxyDownloader {
             throw new Exception('该URL不在白名单中，禁止下载');
         }
     }
-    
+
     public function download() {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->targetUrl);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HEADER, true);
-        
+
         // 获取原始请求的headers并转发
         $headers = getallheaders();
         $curlHeaders = [];
         foreach ($headers as $key => $value) {
-            if (!in_array(strtolower($key), ['host', 'connection'])) {
+            // Filter out headers that might cause issues or are handled by cURL
+            $lowerKey = strtolower($key);
+            if (!in_array($lowerKey, ['host', 'connection', 'content-length'])) { // Added content-length filter
                 $curlHeaders[] = "$key: $value";
             }
         }
         curl_setopt($ch, CURLOPT_HTTPHEADER, $curlHeaders);
-        
-        // 执行请求
+
+        // Execute request
         $response = curl_exec($ch);
-        if ($response === false) {
-            throw new Exception('Download failed: ' . curl_error($ch));
-        }
-        
-        // 分离header和body
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE); // Get HTTP status code
+        $curlError = curl_error($ch); // Get cURL error message
         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+        curl_close($ch); // Close cURL handle early
+
+        if ($response === false) {
+            throw new Exception("Download failed: cURL Error ($httpCode): $curlError");
+        }
+
+        // Separate header and body
         $responseHeaders = substr($response, 0, $headerSize);
         $body = substr($response, $headerSize);
-        
-        // 获取文件名
-        $filename = basename($this->targetUrl);
-        if (empty($filename)) {
-            $filename = 'download';
+
+        // Forward response headers from target server
+        $headerLines = explode("\r\n", trim($responseHeaders));
+        foreach ($headerLines as $headerLine) {
+            // Don't forward transfer-encoding or content-length as we recalculate it
+            if (stripos($headerLine, 'Transfer-Encoding:') === false && stripos($headerLine, 'Content-Length:') === false) {
+                 // Also skip the HTTP status line
+                 if (!preg_match('/^HTTP\/\d\.\d/', $headerLine)) {
+                    header($headerLine, false); // Use false to allow multiple headers of the same type
+                 }
+            }
         }
-        
-        // 设置响应头
-        header('Content-Type: application/octet-stream');
+
+        // Try to extract filename from Content-Disposition or URL
+        $filename = 'download'; // Default filename
+        foreach ($headerLines as $headerLine) {
+            if (stripos($headerLine, 'Content-Disposition:') === 0) {
+                if (preg_match('/filename="?([^"]+)"?/', $headerLine, $matches)) {
+                    $filename = basename($matches[1]); // Use basename to prevent path traversal
+                    break;
+                }
+            }
+        }
+        if ($filename === 'download') { // If not found in headers, use URL basename
+             $pathInfo = pathinfo(parse_url($this->targetUrl, PHP_URL_PATH));
+             if (isset($pathInfo['basename']) && !empty($pathInfo['basename'])) {
+                 $filename = $pathInfo['basename'];
+             }
+        }
+
+
+        // Set necessary headers for download
+        header('Content-Description: File Transfer'); // Added description
+        header('Content-Type: application/octet-stream'); // Force download
         header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . strlen($body));
-        
-        // 输出文件内容
+        header('Expires: 0'); // Prevent caching
+        header('Cache-Control: must-revalidate');
+        header('Pragma: public');
+        header('Content-Length: ' . strlen($body)); // Set correct content length
+
+        // Output file content
         echo $body;
-        
-        curl_close($ch);
+        exit; // Ensure script termination after sending file
     }
 }
 
 try {
-    $downloader = new ProxyDownloader();
-    $downloader->download();
+    // Basic routing: Ignore requests for favicon.ico
+    if ($_SERVER['REQUEST_URI'] === '/favicon.ico') {
+        header("HTTP/1.1 404 Not Found");
+        exit;
+    }
+
+    // Only proceed if it's not the root path (/) which should show an info page or similar
+    if ($_SERVER['REQUEST_URI'] !== '/') {
+        $downloader = new ProxyDownloader();
+        $downloader->download();
+    } else {
+        // Handle root path request - maybe show a simple info page or redirect to admin?
+        // For now, just show a simple message.
+        echo "Web Proxy Download Service. Use /<target_url> to download.";
+        // Or redirect to admin login:
+        // header('Location: /admin/login.php');
+        // exit;
+    }
+
 } catch (Exception $e) {
-    header('HTTP/1.1 500 Internal Server Error');
-    echo 'Error: ' . $e->getMessage();
+    // Log the error instead of just echoing?
+    error_log("Proxy Error: " . $e->getMessage()); // Log to PHP error log
+
+    // Send a user-friendly error response
+    if (!headers_sent()) { // Check if headers already sent
+        header('HTTP/1.1 500 Internal Server Error');
+        header('Content-Type: text/plain'); // Set content type for error message
+    }
+    echo 'Error: ' . htmlspecialchars($e->getMessage()); // Escape output
 }
