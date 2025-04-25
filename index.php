@@ -19,10 +19,24 @@ $error = '';
 // 限流逻辑：每分钟请求上限由配置文件决定
 $limit_config_file = __DIR__ . '/limit_config.txt';
 $limit = 5;
+$limits = [
+    'per_minute' => 5,
+    // 可扩展更多类型
+];
 if (file_exists($limit_config_file)) {
-    $limit_content = trim(file_get_contents($limit_config_file));
-    if (is_numeric($limit_content) && (int)$limit_content > 0) {
-        $limit = (int)$limit_content;
+    $lines = file($limit_config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos($line, '=') !== false) {
+            list($key, $value) = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value);
+            if (is_numeric($value) && (int)$value > 0) {
+                $limits[$key] = (int)$value;
+            }
+        }
+    }
+    if (isset($limits['per_minute'])) {
+        $limit = $limits['per_minute'];
     }
 }
 $period = 60; // 秒
