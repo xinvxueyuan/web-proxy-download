@@ -50,32 +50,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>白名单代理下载</title>
-    <!-- 引入Bootstrap CSS -->
+    <title>简单代理下载</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            height: 100%;
+        }
+        .center-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .main-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+        }
+        .download-form {
+            width: 100%;
+            max-width: 400px;
+        }
+    </style>
 </head>
 <body class="bg-light">
-<div class="container" style="max-width: 430px; margin-top: 80px;">
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h2 class="card-title text-center mb-4">白名单代理下载</h2>
-            <?php if ($error): ?>
-                <div class="alert alert-danger" role="alert"><?php echo htmlspecialchars($error); ?></div>
-            <?php endif; ?>
-            <form method="post">
-                <div class="mb-3">
-                    <label for="url" class="form-label">下载链接：</label>
-                    <input type="url" class="form-control" id="url" name="url" placeholder="请输入下载链接" required>
-                </div>
-                <button type="submit" class="btn btn-primary w-100">下载</button>
-            </form>
-            <div class="alert alert-secondary mt-4 p-2 small" role="alert">
-                仅支持以下白名单域名：<br><?php echo implode(', ', $whitelist); ?>
-            </div>
+<div class="center-container">
+    <div class="main-title text-primary text-center">简单代理下载</div>
+    <form method="post" class="download-form">
+        <div class="mb-3">
+            <input type="url" class="form-control" id="url" name="url" placeholder="请输入文件下载链接" required autofocus>
         </div>
+        <button type="submit" class="btn btn-primary w-100">下载</button>
+    </form>
+    <?php if ($error): ?>
+        <div class="alert alert-danger mt-3 w-100 text-center" role="alert"><?php echo htmlspecialchars($error); ?></div>
+    <?php endif; ?>
+    <div class="alert alert-secondary mt-4 p-2 small text-center w-100" role="alert">
+        仅支持以下白名单域名：<br><?php echo implode(', ', $whitelist); ?>
     </div>
 </div>
-<!-- 引入Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
