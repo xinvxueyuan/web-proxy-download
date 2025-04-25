@@ -1,5 +1,4 @@
 <?php
-// 白名单域名列表
 $whitelist = file(__DIR__ . '/whitelist.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
 
 function is_url_in_whitelist($url, $whitelist) {
@@ -15,13 +14,10 @@ function is_url_in_whitelist($url, $whitelist) {
 }
 
 $error = '';
-// 限流逻辑：每分钟最多5次
-// 限流逻辑：每分钟请求上限由配置文件决定
 $limit_config_file = __DIR__ . '/limit_config.txt';
 $limit = 5;
 $limits = [
-    'per_minute' => 5,
-    // 可扩展更多类型
+    'per_minute' => 5
 ];
 if (file_exists($limit_config_file)) {
     $lines = file($limit_config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -39,7 +35,7 @@ if (file_exists($limit_config_file)) {
         $limit = $limits['per_minute'];
     }
 }
-$period = 60; // 秒
+$period = 60;
 $now = time();
 $cookie_name = 'download_limit';
 $limit_data = isset($_COOKIE[$cookie_name]) ? json_decode($_COOKIE[$cookie_name], true) : null;
@@ -65,7 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (!is_url_in_whitelist($url, $whitelist) && basename(parse_url($url, PHP_URL_PATH)) !== 'whitelist.txt') {
                 $error = '该链接不在白名单内，无法下载。';
             } else {
-                // 代理下载
                 $filename = basename(parse_url($url, PHP_URL_PATH));
                 if (!$filename) $filename = 'downloaded_file';
                 header('Content-Description: File Transfer');
@@ -97,25 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>简单代理下载</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body, html {
-            height: 100%;
-        }
-        .center-container {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        .main-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 2rem;
-        }
-        .download-form {
-            width: 100%;
-            max-width: 400px;
-        }
+        body, html { height: 100%; }
+        .center-container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .main-title { font-size: 2.5rem; font-weight: bold; margin-bottom: 2rem; }
+        .download-form { width: 100%; max-width: 400px; }
     </style>
 </head>
 <body class="bg-light">
