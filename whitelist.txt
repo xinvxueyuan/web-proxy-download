@@ -1,0 +1,3 @@
+example.com
+download.example.org
+files.trustedsite.net
