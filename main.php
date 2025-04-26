@@ -1,3 +1,4 @@
+<?php if (!isset($whitelist) || !is_array($whitelist)) { $whitelist = []; } ?>
 <div class="center-container">
     <div class="main-title text-primary text-center">简单代理下载</div>
     <form method="post" class="download-form">
