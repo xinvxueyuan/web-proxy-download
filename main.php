@@ -1,8 +1,4 @@
-<?php
-require_once __DIR__ . '/controller.php';
-$data = handle_request();
-$whitelist = isset($data['whitelist']) && is_array($data['whitelist']) ? $data['whitelist'] : [];
-$error = $data['error'] ?? '';
+<?php if (!isset($whitelist) || !is_array($whitelist)) { $whitelist = []; } ?>
 <div class="center-container">
     <div class="main-title text-primary text-center">简单代理下载</div>
     <form method="post" class="download-form">
