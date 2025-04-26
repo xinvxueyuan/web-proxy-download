@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/controller.php';
-$data = handle_request();
-$whitelist = isset($data['whitelist']) ? $data['whitelist'] : [];
+$data = handleRequest();
+$whiteList = isset($data['whitelist']) ? $data['whitelist'] : [];
 $error = $data['error'];
 ?>
 <!DOCTYPE html>

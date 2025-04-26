@@ -1,20 +1,20 @@
 <?php
 require_once __DIR__ . '/functions.php';
 
-function handle_request() {
-    $whitelist = file(__DIR__ . '/whitelist.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+function handleRequest() {
+    $whiteList = file(__DIR__ . '/whitelist.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
     $error = '';
-    $limit_config_file = __DIR__ . '/limit_config.txt';
-    $limit = get_limit_config($limit_config_file);
+    $limitConfigFile = __DIR__ . '/limit_config.txt';
+    $limit = getLimitConfig($limitConfigFile);
     $period = 60;
     $now = time();
-    $cookie_name = 'download_limit';
-    $limit_data = isset($_COOKIE[$cookie_name]) ? json_decode($_COOKIE[$cookie_name], true) : null;
-    if (!$limit_data || !isset($limit_data['time']) || !isset($limit_data['count']) || $now - $limit_data['time'] > $period) {
-        $limit_data = ['time' => $now, 'count' => 0];
+    $cookieName = 'download_limit';
+    $limitData = isset($_COOKIE[$cookieName]) ? json_decode($_COOKIE[$cookieName], true) : null;
+    if (!$limitData || !isset($limitData['time']) || !isset($limitData['count']) || $now - $limitData['time'] > $period) {
+        $limitData = ['time' => $now, 'count' => 0];
     }
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        if (!check_and_update_limit($limit_data, $limit, $period, $now, $cookie_name)) {
+        if (!checkAndUpdateLimit($limitData, $limit, $period, $now, $cookieName)) {
             $error = '请求过于频繁，请稍后再试。';
         } else {
             $url = trim($_POST['url'] ?? '');
@@ -22,23 +22,23 @@ function handle_request() {
                 $error = '请输入下载链接。';
             } elseif (!filter_var($url, FILTER_VALIDATE_URL)) {
                 $error = '链接格式不正确。';
-            } elseif (!is_url_in_whitelist($url, $whitelist) && basename(parse_url($url, PHP_URL_PATH)) !== 'whitelist.txt') {
+            } elseif (!isUrlInWhitelist($url, $whiteList) && basename(parse_url($url, PHP_URL_PATH)) !== 'whitelist.txt') {
                 $error = '该链接不在白名单内，无法下载。';
             } else {
-                if (handle_download($url) === false) {
+                if (handleDownload($url) === false) {
                     $error = '文件下载失败，请检查链接。';
                 }
             }
         }
-        setcookie($cookie_name, json_encode($limit_data), $now + $period, '/');
+        setcookie($cookieName, json_encode($limitData), $now + $period, '/');
     }
     return [
-        'whitelist' => $whitelist,
+        'whitelist' => $whiteList,
         'error' => $error,
         'limit' => $limit,
         'period' => $period,
         'now' => $now,
-        'cookie_name' => $cookie_name,
-        'limit_data' => $limit_data
+        'cookie_name' => $cookieName,
+        'limit_data' => $limitData
     ];
 }

@@ -1,4 +1,4 @@
-<?php if (!isset($whitelist) || !is_array($whitelist)) { $whitelist = []; } ?>
+<?php if (!isset($whiteList) || !is_array($whiteList)) { $whiteList = []; } ?>
 <div class="center-container">
     <div class="main-title text-primary text-center">简单代理下载</div>
     <form method="post" class="download-form">
@@ -11,6 +11,6 @@
         <div class="alert alert-danger mt-3 w-100 text-center" role="alert"><?php echo htmlspecialchars($error); ?></div>
     <?php endif; ?>
     <div class="alert alert-secondary mt-4 p-2 small text-center w-100" role="alert">
-        仅支持以下白名单域名：<br><?php echo implode(', ', $whitelist); ?>
+        仅支持以下白名单域名：<br><?php echo implode(', ', $whiteList); ?>
     </div>
 </div>

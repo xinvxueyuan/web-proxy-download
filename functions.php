@@ -1,10 +1,10 @@
 <?php
 // 白名单校验函数
-function is_url_in_whitelist($url, $whitelist) {
+function isUrlInWhitelist($url, $whiteList) {
     $parsed = parse_url($url);
     if (!isset($parsed['host'])) return false;
     $host = $parsed['host'];
-    foreach ($whitelist as $allowed) {
+    foreach ($whiteList as $allowed) {
         if (stripos($host, $allowed) !== false) {
             return true;
         }
@@ -13,13 +13,13 @@ function is_url_in_whitelist($url, $whitelist) {
 }
 
 // 限流处理函数
-function get_limit_config($limit_config_file) {
+function getLimitConfig($limitConfigFile) {
     $limit = 5;
     $limits = [
         'per_minute' => 5
     ];
-    if (file_exists($limit_config_file)) {
-        $lines = file($limit_config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (file_exists($limitConfigFile)) {
+        $lines = file($limitConfigFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         foreach ($lines as $line) {
             if (strpos($line, '=') !== false) {
                 list($key, $value) = explode('=', $line, 2);
@@ -37,27 +37,27 @@ function get_limit_config($limit_config_file) {
     return $limit;
 }
 
-function check_and_update_limit(&$limit_data, $limit, $period, $now, $cookie_name) {
-    if ($limit_data['count'] >= $limit && $now - $limit_data['time'] < $period) {
+function checkAndUpdateLimit(&$limitData, $limit, $period, $now, $cookieName) {
+    if ($limitData['count'] >= $limit && $now - $limitData['time'] < $period) {
         return false;
     } else {
-        if ($now - $limit_data['time'] >= $period) {
-            $limit_data = ['time' => $now, 'count' => 1];
+        if ($now - $limitData['time'] >= $period) {
+            $limitData = ['time' => $now, 'count' => 1];
         } else {
-            $limit_data['count']++;
+            $limitData['count']++;
         }
-        setcookie($cookie_name, json_encode($limit_data), $now + $period, '/');
+        setcookie($cookieName, json_encode($limitData), $now + $period, '/');
         return true;
     }
 }
 
 // 下载处理函数
-function handle_download($url) {
-    $filename = basename(parse_url($url, PHP_URL_PATH));
-    if (!$filename) $filename = 'downloaded_file';
+function handleDownload($url) {
+    $fileName = basename(parse_url($url, PHP_URL_PATH));
+    if (!$fileName) $fileName = 'downloaded_file';
     header('Content-Description: File Transfer');
     header('Content-Type: application/octet-stream');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
     header('Expires: 0');
     header('Cache-Control: must-revalidate');
     header('Pragma: public');
