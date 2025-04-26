@@ -1,0 +1,4 @@
+body, html { height: 100%; }
+.center-container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+.main-title { font-size: 2.5rem; font-weight: bold; margin-bottom: 2rem; }
+.download-form { width: 100%; max-width: 400px; }

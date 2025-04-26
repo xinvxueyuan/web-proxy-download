@@ -91,12 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <title>简单代理下载</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body, html { height: 100%; }
-        .center-container { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .main-title { font-size: 2.5rem; font-weight: bold; margin-bottom: 2rem; }
-        .download-form { width: 100%; max-width: 400px; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-light">
 <div class="center-container">
