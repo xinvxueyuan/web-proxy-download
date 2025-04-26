@@ -1,40 +1,9 @@
 <?php
+require_once __DIR__ . '/functions.php';
 $whitelist = file(__DIR__ . '/whitelist.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-
-function is_url_in_whitelist($url, $whitelist) {
-    $parsed = parse_url($url);
-    if (!isset($parsed['host'])) return false;
-    $host = $parsed['host'];
-    foreach ($whitelist as $allowed) {
-        if (stripos($host, $allowed) !== false) {
-            return true;
-        }
-    }
-    return false;
-}
-
 $error = '';
 $limit_config_file = __DIR__ . '/limit_config.txt';
-$limit = 5;
-$limits = [
-    'per_minute' => 5
-];
-if (file_exists($limit_config_file)) {
-    $lines = file($limit_config_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos($line, '=') !== false) {
-            list($key, $value) = explode('=', $line, 2);
-            $key = trim($key);
-            $value = trim($value);
-            if (is_numeric($value) && (int)$value > 0) {
-                $limits[$key] = (int)$value;
-            }
-        }
-    }
-    if (isset($limits['per_minute'])) {
-        $limit = $limits['per_minute'];
-    }
-}
+$limit = get_limit_config($limit_config_file);
 $period = 60;
 $now = time();
 $cookie_name = 'download_limit';
@@ -43,49 +12,26 @@ if (!$limit_data || !isset($limit_data['time']) || !isset($limit_data['count']) 
     $limit_data = ['time' => $now, 'count' => 0];
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($limit_data['count'] >= $limit && $now - $limit_data['time'] < $period) {
+    if (!check_and_update_limit($limit_data, $limit, $period, $now, $cookie_name)) {
         $error = '请求过于频繁，请稍后再试。';
     } else {
-        if ($now - $limit_data['time'] >= $period) {
-            $limit_data = ['time' => $now, 'count' => 1];
+        $url = trim($_POST['url'] ?? '');
+        if (empty($url)) {
+            $error = '请输入下载链接。';
+        } elseif (!filter_var($url, FILTER_VALIDATE_URL)) {
+            $error = '链接格式不正确。';
+        } elseif (!is_url_in_whitelist($url, $whitelist) && basename(parse_url($url, PHP_URL_PATH)) !== 'whitelist.txt') {
+            $error = '该链接不在白名单内，无法下载。';
         } else {
-            $limit_data['count']++;
-        }
-        setcookie($cookie_name, json_encode($limit_data), $now + $period, '/');
-        if (empty($error)) {
-            $url = trim($_POST['url'] ?? '');
-            if (empty($url)) {
-                $error = '请输入下载链接。';
-            } elseif (!filter_var($url, FILTER_VALIDATE_URL)) {
-                $error = '链接格式不正确。';
-            } elseif (!is_url_in_whitelist($url, $whitelist) && basename(parse_url($url, PHP_URL_PATH)) !== 'whitelist.txt') {
-                $error = '该链接不在白名单内，无法下载。';
-            } else {
-                $filename = basename(parse_url($url, PHP_URL_PATH));
-                if (!$filename) $filename = 'downloaded_file';
-                header('Content-Description: File Transfer');
-                header('Content-Type: application/octet-stream');
-                header('Content-Disposition: attachment; filename="' . $filename . '"');
-                header('Expires: 0');
-                header('Cache-Control: must-revalidate');
-                header('Pragma: public');
-                $fp = fopen($url, 'rb');
-                if ($fp) {
-                    while (!feof($fp)) {
-                        echo fread($fp, 8192);
-                        flush();
-                    }
-                    fclose($fp);
-                } else {
-                    $error = '文件下载失败，请检查链接。';
-                }
-                exit;
+            if (handle_download($url) === false) {
+                $error = '文件下载失败，请检查链接。';
             }
         }
     }
     setcookie($cookie_name, json_encode($limit_data), $now + $period, '/');
 }
-?><!DOCTYPE html>
+?>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -94,21 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-light">
-<div class="center-container">
-    <div class="main-title text-primary text-center">简单代理下载</div>
-    <form method="post" class="download-form">
-        <div class="mb-3">
-            <input type="url" class="form-control" id="url" name="url" placeholder="请输入文件下载链接" required autofocus>
-        </div>
-        <button type="submit" class="btn btn-primary w-100">下载</button>
-    </form>
-    <?php if ($error): ?>
-        <div class="alert alert-danger mt-3 w-100 text-center" role="alert"><?php echo htmlspecialchars($error); ?></div>
-    <?php endif; ?>
-    <div class="alert alert-secondary mt-4 p-2 small text-center w-100" role="alert">
-        仅支持以下白名单域名：<br><?php echo implode(', ', $whitelist); ?>
-    </div>
-</div>
+<?php include 'header.php'; ?>
+<?php include 'main.php'; ?>
+<?php include 'footer.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
